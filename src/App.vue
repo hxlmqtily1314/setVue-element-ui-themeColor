@@ -36,7 +36,14 @@ const navList = [
 import Cookies from 'js-cookie'
 export default {
   name: 'App',
-  inject: ['themeConfig'],
+  inject: {
+    themeConfig: {
+      default: () => ({
+        themeColor: '',
+        defaultColor: ''
+      })
+    }
+  },
   data() {
     return {
       navArr: navList,
@@ -52,11 +59,19 @@ export default {
         this.activeIndex = result.path;
       }
 
+      // 关键作用-进入到具体路由页面更新页面中DOM样式
+      if (typeof this.themeConfig.themeColor != 'undefined' && this.themeConfig.themeColor !== this.themeConfig.defaultColor) {
+        this.$nextTick(() => {
+          if (this.themeConfig.themeColor && this.themeConfig.defaultColor) {
+            this.setThemeColor(this.themeConfig.themeColor, this.themeConfig.defaultColor)
+          }
+        })
+      }
     }
   },
   created() {
     // 如果本地存在主题色从本地获取，并提交给root分发到页面进行渲染
-    if(Cookies.get('themeColor')) { 
+    if(Cookies.get('themeColor')) {
       this.themeColor = Cookies.get('themeColor');
       this.$$dispatch('root','root.config',this.themeColor);
     } else {

@@ -15,10 +15,50 @@ npm run build
 # build for production and view the bundle analyzer report
 npm run build --report
 ```
+## 基本思路
+- 1.把得到的主题色传递给根root实例，在根实例中监听主题色的变化，并调用`setThemeColor(newval, oldval)`方法；
+- 2.在APP.vue中监听路由变化，并调用`setThemeColor(newval, oldval)`方法，目的是进入具体路由页面需要修改页面的head中的style样式、DOM元素中的行内style样式；
 
-## theme.js
+
+## 使用方式
+### 设置element-ui主题色设置引入到main.js中
+
+在src/styles下新建`element-variables.scss`:
+```
+/* 改变主题色变量 */
+$--color-primary: #42b983;
+
+/* 改变 icon 字体路径变量，必需 */
+$--font-path: '~element-ui/lib/theme-chalk/fonts';
+
+@import "~element-ui/packages/theme-chalk/src/index";
+
+:export {
+  colorPrimary: $--color-primary
+}
+```
+在main.js中引入该css:
+```
+import variables from '@/styles/element-variables.scss'
+```
+
+### 全局混入theme.js、emitter.js
+- theme.js主要方法`setThemeColor(newval, oldval)`,该方法传入新的颜色值与旧的颜色值;
+- emitter.js中使用`$$dispatch`方法把修改的主题色提交到根实例下;
+
+在main.js 中引入该两个JS并注册：
+```
+import theme from '@/mixins/theme.js'
+import emitter from '@/mixins/emitter.js'
+
+Vue.mixin(theme)
+Vue.mixin(emitter)
+```
+### 核心代码调用
+- 主题色提交到根实例代码以及监听具体的路由页面修改样式
 ```
 export default {
+  name: 'App',
   inject: {
     themeConfig: {
       default: () => ({
@@ -27,11 +67,14 @@ export default {
       })
     }
   },
+  data() {
+    return {
+      themeColor: ''
+    }
+  },
   watch: {
-    'themeConfig.themeColor': function(newval, oldval) {
-      this.setThemeColor(newval, oldval);
-    },
-    '$route': function(val, oldval) {
+    $route() {
+      // 关键作用-进入到具体路由页面更新页面中DOM样式
       if (typeof this.themeConfig.themeColor != 'undefined' && this.themeConfig.themeColor !== this.themeConfig.defaultColor) {
         this.$nextTick(() => {
           if (this.themeConfig.themeColor && this.themeConfig.defaultColor) {
@@ -41,7 +84,60 @@ export default {
       }
     }
   },
+  created() {
+    // 如果本地存在主题色从本地获取，并提交给root分发到页面进行渲染
+    if(Cookies.get('themeColor')) {
+      this.themeColor = Cookies.get('themeColor');
+      this.$$dispatch('root','root.config',this.themeColor);
+    } else {
+      this.themeColor = this.themeConfig.themeColor;
+    }
+  },
+  methods: {
+    // 改变主题颜色
+    changeThemeColor(value) {
+      this.$$dispatch('root','root.config',value);
+      Cookies.set('themeColor', value, { path: '/' });
+    }
+  }
+}
+```
+- 根实例监听获取的主题色并监听设置主题色
+```
+new Vue({
+  el: '#app',
+  name: 'root',
+  provide(){
+    return {
+      themeConfig: this
+    }
+  },
+  data() {
+    return {
+      themeColor: variables.colorPrimary,
+      defaultColor: variables.colorPrimary
+    }
+  },
+  created() {
+    this.$on('root.config',(result) => {
+      this.themeColor = result;
+    })
+  },
+  watch: {
+    themeColor(newval, oldval) {
+      this.setThemeColor(newval, oldval);
+    }
+  },
+  router,
+  components: { App },
+  template: '<App/>'
+})
+```
 
+
+### theme.js设置主题代码
+```
+export default {
   methods: {
     // 样式更新
     updateStyle(stylecon, oldCulster, newCluster) {
@@ -119,7 +215,7 @@ export default {
     },
 
 
-    // 获取url地址
+    // 获取外链CSS样式的url地址
     getRequestUrl: function(src) {
       if (/^(http|https):\/\//g.test(src)) {
         return src;
@@ -136,6 +232,7 @@ export default {
       return filePath + "/" + src.replace(/\.\.\//g, "");
     },
 
+    // 获取当前window的url地址
     getFilePath: function() {
       const curHref = window.location.href;
       if(curHref.indexOf('/#/') != -1) {
@@ -143,7 +240,6 @@ export default {
       } else {
         return curHref.substring(0, curHref.lastIndexOf('/') + 1);
       }
-      return curHref.substring(0, curHref.lastIndexOf('/') + 1);
     },
 
     // 修改主题色-head样式以及DOM行内样式
@@ -201,9 +297,8 @@ export default {
   }
 }
 
-
 ```
-## emitter.js
+### emitter代码
 ```
 function broadcast(componentName, eventName, params) {
     this.$children.forEach(child => {

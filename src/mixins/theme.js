@@ -1,27 +1,4 @@
 export default {
-  inject: {
-    themeConfig: {
-      default: () => ({
-        themeColor: '',
-        defaultColor: ''
-      })
-    }
-  },
-  watch: {
-    'themeConfig.themeColor': function(newval, oldval) {
-      this.setThemeColor(newval, oldval);
-    },
-    '$route': function(val, oldval) {
-      if (typeof this.themeConfig.themeColor != 'undefined' && this.themeConfig.themeColor !== this.themeConfig.defaultColor) {
-        this.$nextTick(() => {
-          if (this.themeConfig.themeColor && this.themeConfig.defaultColor) {
-            this.setThemeColor(this.themeConfig.themeColor, this.themeConfig.defaultColor)
-          }
-        })
-      }
-    }
-  },
-
   methods: {
     // 样式更新
     updateStyle(stylecon, oldCulster, newCluster) {
@@ -99,7 +76,7 @@ export default {
     },
 
 
-    // 获取url地址
+    // 获取外链CSS样式的url地址
     getRequestUrl: function(src) {
       if (/^(http|https):\/\//g.test(src)) {
         return src;
@@ -115,7 +92,8 @@ export default {
       }
       return filePath + "/" + src.replace(/\.\.\//g, "");
     },
-
+    
+    // 获取当前window的url地址
     getFilePath: function() {
       const curHref = window.location.href;
       if(curHref.indexOf('/#/') != -1) {
@@ -123,7 +101,6 @@ export default {
       } else {
         return curHref.substring(0, curHref.lastIndexOf('/') + 1);
       }
-      return curHref.substring(0, curHref.lastIndexOf('/') + 1);
     },
 
     // 修改主题色-head样式以及DOM行内样式

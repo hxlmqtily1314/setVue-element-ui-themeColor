@@ -26,15 +26,19 @@ new Vue({
   },
   data() {
     return {
-      themeColor: '',
+      themeColor: variables.colorPrimary,
       defaultColor: variables.colorPrimary
     }
   },
   created() {
-    this.themeColor = variables.colorPrimary;
     this.$on('root.config',(result) => {
       this.themeColor = result;
     })
+  },
+  watch: {
+    themeColor(newval, oldval) {
+      this.setThemeColor(newval, oldval);
+    }
   },
   router,
   components: { App },
