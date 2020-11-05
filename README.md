@@ -21,7 +21,7 @@ npm run build --report
 
 
 ## 使用方式
-### 设置element-ui主题色设置引入到main.js中
+### 设置element-ui主题色引入到main.js中
 
 在src/styles下新建`element-variables.scss`:
 ```
