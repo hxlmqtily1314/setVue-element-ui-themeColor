@@ -1,3 +1,4 @@
+[toc]
 # vue+element-ui动态设置主题色
 
 ## Build Setup
@@ -19,6 +20,7 @@ npm run build --report
 - 1.把得到的主题色传递给根root实例，在根实例中监听主题色的变化，并调用`setThemeColor(newval, oldval)`方法；
 - 2.在APP.vue中监听路由变化，并调用`setThemeColor(newval, oldval)`方法，目的是进入具体路由页面需要修改页面的head中的style样式、DOM元素中的行内style样式；
 
+效果预览地址：[《vue+element-ui动态设置主题效果》](https://hxlmqtily1314.github.io/setVue-element-ui-themeColor/)
 
 ## 使用方式
 ### 设置element-ui主题色引入到main.js中
