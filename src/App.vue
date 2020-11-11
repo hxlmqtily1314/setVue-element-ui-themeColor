@@ -73,7 +73,7 @@ export default {
     // 如果本地存在主题色从本地获取，并提交给root分发到页面进行渲染
     if(Cookies.get('themeColor')) {
       this.themeColor = Cookies.get('themeColor');
-      this.$$dispatch('root','root.config',this.themeColor);
+      this.$$dispatch('root','root.config',[this.themeColor,true]); // 传递数组-解决初始加载执行setThemeColor两次问题
     } else {
       this.themeColor = this.themeConfig.themeColor;
     }

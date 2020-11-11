@@ -88,7 +88,7 @@ export default {
     // 如果本地存在主题色从本地获取，并提交给root分发到页面进行渲染
     if(Cookies.get('themeColor')) {
       this.themeColor = Cookies.get('themeColor');
-      this.$$dispatch('root','root.config',this.themeColor);
+      this.$$dispatch('root','root.config',[this.themeColor,true]); // 传递数组-解决初始加载执行setThemeColor两次问题
     } else {
       this.themeColor = this.themeConfig.themeColor;
     }
@@ -114,18 +114,22 @@ new Vue({
   },
   data() {
     return {
-      themeColor: variables.colorPrimary,
-      defaultColor: variables.colorPrimary
+      themeColor: variables.colorPrimary.toLowerCase(),
+      defaultColor: variables.colorPrimary.toLowerCase(),
+      themeFirstLoaded: true, // 主题是否第一次加载，解决初始主题watch跟$route执行setThemeColor两次问题
     }
   },
   created() {
-    this.$on('root.config',(result) => {
-      this.themeColor = result;
+    this.$on('root.config',(result,themeFirstLoaded) => {
+      this.themeColor = result.toLowerCase();
+      this.themeFirstLoaded = themeFirstLoaded;
     })
   },
   watch: {
     themeColor(newval, oldval) {
-      this.setThemeColor(newval, oldval);
+      if(!this.themeFirstLoaded) {
+        this.setThemeColor(newval, oldval);
+      }
     }
   },
   router,
@@ -143,15 +147,14 @@ export default {
     updateStyle(stylecon, oldCulster, newCluster) {
       let newStyleCon = stylecon;
       oldCulster.forEach((color, index) => {
+        let regexp = '';
         if (color.split(',').length > 1) {
           const rgbArr = color.split(',');
-          const regexp = new RegExp("\\s*" + rgbArr[0] + "\\s*,\\s*" + rgbArr[1] + "\\s*,\\s*" + rgbArr[2] + "\\s*",
-            'ig');
-          newStyleCon = newStyleCon.replace(regexp, newCluster[index])
+          regexp = new RegExp("\\s*" + rgbArr[0] + "\\s*,\\s*" + rgbArr[1] + "\\s*,\\s*" + rgbArr[2] + "\\s*", 'ig');
         } else {
-          newStyleCon = newStyleCon.replace(new RegExp(color, 'ig'), newCluster[index])
+          regexp = new RegExp(color, 'ig');
         }
-
+        newStyleCon = newStyleCon.replace(regexp, newCluster[index])
       })
       return newStyleCon;
     },
@@ -202,16 +205,18 @@ export default {
     },
 
     // 获取外链css文本内容
-    getCSSText(url, callback) {
-      const xhr = new XMLHttpRequest()
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          const styleText = xhr.responseText.replace(/@font-face{[^}]+}/, '')
-          callback(styleText);
+    getCSSText(url) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            const styleText = xhr.responseText.replace(/@font-face{[^}]+}/, '')
+            resolve(styleText);
+          }
         }
-      }
-      xhr.open('GET', url)
-      xhr.send()
+        xhr.open('GET', url)
+        xhr.send()
+      })
     },
 
 
@@ -235,7 +240,7 @@ export default {
     // 获取当前window的url地址
     getFilePath: function() {
       const curHref = window.location.href;
-      if(curHref.indexOf('/#/') != -1) {
+      if (curHref.indexOf('/#/') != -1) {
         return curHref.substring(0, curHref.indexOf('/#/'));
       } else {
         return curHref.substring(0, curHref.lastIndexOf('/') + 1);
@@ -243,7 +248,7 @@ export default {
     },
 
     // 修改主题色-head样式以及DOM行内样式
-    setThemeColor(newval, oldval) {
+    async setThemeColor(newval, oldval) {
       if (typeof newval !== 'string') return;
       const newThemeCluster = this.getThemeCluster(newval.replace('#', ''));
       const orignalCluster = this.getThemeCluster(oldval.replace('#', ''));
@@ -255,20 +260,22 @@ export default {
       // 获取外链的样式内容并替换样式
       let styleTag = document.getElementById('new-configTheme__styles');
       const tagsDom = document.getElementsByTagName('link');
-      if (!styleTag && tagsDom) {
+      if (!styleTag && tagsDom.length) {
         styleTag = document.createElement('style')
         styleTag.setAttribute('id', 'new-configTheme__styles')
         document.head.appendChild(styleTag);
         const tagsDomList = Array.prototype.slice.call(tagsDom);
-        tagsDomList.forEach((value, index, array) => {
+        let innerTextCon = '';
+        for (let i = 0; i < tagsDomList.length; i++) {
+          const value = tagsDomList[i];
           const tagAttributeSrc = value.getAttribute('href');
           const requestUrl = this.getRequestUrl(tagAttributeSrc);
-          this.getCSSText(requestUrl, (styleCon) => {
-            if(new RegExp(oldval, 'i').test(styleCon) || orignalRGBRegExp.test(styleCon)) {
-              styleTag.innerText += this.updateStyle(styleCon,orignalCluster,newThemeCluster);
-            }
-          })
-        })
+          const styleCon = await this.getCSSText(requestUrl);
+          if (new RegExp(oldval, 'i').test(styleCon) || orignalRGBRegExp.test(styleCon)) {
+            innerTextCon += this.updateStyle(styleCon, orignalCluster, newThemeCluster);
+          }
+        }
+        styleTag.innerText = innerTextCon;
       }
 
       // 获取页面的style标签
@@ -276,6 +283,8 @@ export default {
         const text = style.innerText;
         return new RegExp(oldval, 'i').test(text) || orignalRGBRegExp.test(text);
       })
+
+      // 获取页面的style标签内容，使用updateStyle直接更新即可
       styles.forEach((style) => {
         const {
           innerText
@@ -296,6 +305,7 @@ export default {
     }
   }
 }
+
 
 ```
 ### emitter代码

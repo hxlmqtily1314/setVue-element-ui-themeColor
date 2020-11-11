@@ -26,18 +26,22 @@ new Vue({
   },
   data() {
     return {
-      themeColor: variables.colorPrimary,
-      defaultColor: variables.colorPrimary
+      themeColor: variables.colorPrimary.toLowerCase(),
+      defaultColor: variables.colorPrimary.toLowerCase(),
+      themeFirstLoaded: true, // 主题是否第一次加载，解决初始主题watch跟$route执行setThemeColor两次问题
     }
   },
   created() {
-    this.$on('root.config',(result) => {
-      this.themeColor = result;
+    this.$on('root.config',(result,themeFirstLoaded) => {
+      this.themeColor = result.toLowerCase();
+      this.themeFirstLoaded = themeFirstLoaded;
     })
   },
   watch: {
     themeColor(newval, oldval) {
-      this.setThemeColor(newval, oldval);
+      if(!this.themeFirstLoaded) {
+        this.setThemeColor(newval, oldval);
+      }
     }
   },
   router,
