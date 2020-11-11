@@ -1,4 +1,3 @@
-[toc]
 # vue+element-ui动态设置主题色
 
 ## Build Setup
