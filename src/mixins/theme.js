@@ -53,11 +53,12 @@ export default {
 
       red = Math.round((1 - shade) * red);
       green = Math.round((1 - shade) * green);
-      blue = Math.round((1 - blue) * blue);
+      blue = Math.round((1 - shade) * blue);
 
       red = red.toString(16);
       green = green.toString(16);
       blue = blue.toString(16);
+      console.log(red,green,blue)
       return `#${red}${green}${blue}`
     },
 
@@ -109,7 +110,9 @@ export default {
       if (typeof newval !== 'string') return;
       const newThemeCluster = this.getThemeCluster(newval.replace('#', ''));
       const orignalCluster = this.getThemeCluster(oldval.replace('#', ''));
-      // 获取原始值中包含rgb格式的值存为数组
+      console.log(newThemeCluster)
+      console.log(orignalCluster)
+      // 获取原始值中包含rgb格式的值存为数组,
       const rgbArr = orignalCluster[1].split(',');
       const orignalRGBRegExp = new RegExp("\\(\\s*" + rgbArr[0] + "\\s*,\\s*" + rgbArr[1] + "\\s*,\\s*" + rgbArr[2] +
         "\\s*\\)", 'i');
