@@ -229,7 +229,7 @@ export default {
       let filePath = this.getFilePath();
       let count = 0;
       const regexp = /\.\.\//g;
-      while (regexp.exec(filePath)) {
+      while (regexp.exec(src)) {
         count++;
       }
       while (count--) {
